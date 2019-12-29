@@ -1,5 +1,48 @@
 #!/usr/bin/env bash
 set -Eeo pipefail
+
+# /DATA should be mounted as PV
+rm -rf /usr/src/redmine/files
+rm -rf /usr/src/redmine/plugins
+rm -rf /usr/src/redmine/public/themes
+mkdir -p /DATA/files
+mkdir -p /DATA/plugins
+mkdir -p /DATA/themes
+mkdir -p /DATA/config
+chown redmine:redmine /DATA/files /DATA/plugins /DATA/themes
+ln -s /DATA/files /usr/src/redmine/files
+ln -s /DATA/plugins /usr/src/redmine/plugins
+ln -s /DATA/themes /usr/src/redmine/public/themes
+
+if [ ! -e /DATA/config/configuration.yml ]; then
+        if [ -e /usr/src/redmine/config/configuration.yml ]; then
+                cp /usr/src/redmine/config/configuration.yml \
+                        /DATA/config/configuration.yml
+                rm -f /usr/src/redmine/config/configuration.yml
+        else
+                cp /usr/src/redmine/config/configuration.yml.example \
+                        /DATA/config/configuration.yml
+        fi
+        chown redmine:redmine /DATA/config/configuration.yml
+fi
+
+if [ -e /usr/src/redmine/config/configuration.yml ]; then
+        rm -f /usr/src/redmine/config/configuration.yml
+fi
+ln -s /DATA/config/configuration.yml \
+        /usr/src/redmine/config/configuration.yml
+
+if [ ! -e /DATA/config/settings.yml ]; then
+        cp /usr/src/redmine/config/settings.yml \
+                /DATA/config/settings.yml
+        chown redmine:redmine /DATA/config/settings.yml
+fi
+
+rm -f /usr/src/redmine/config/settings.yml
+ln -s /DATA/config/settings.yml \
+        /usr/src/redmine/config/settings.yml
+
+
 # TODO add "-u"
 
 # usage: file_env VAR [DEFAULT]

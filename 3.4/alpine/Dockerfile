@@ -1,4 +1,5 @@
 FROM ruby:2.4-alpine3.10
+LABEL maintainer="32001477+TaichiKageyama@users.noreply.github.com"
 
 # explicitly set uid/gid to guarantee that it won't change in the future
 # the values 999:999 are identical to the current user/group id assigned
@@ -14,11 +15,8 @@ RUN set -eux; \
 		tzdata \
 		wget \
 		\
-		bzr \
 		git \
-		mercurial \
 		openssh-client \
-		subversion \
 		\
 # https://github.com/docker-library/redmine/issues/132
 # (without "ghostscript-fonts" we get "Magick::ImageMagickError (non-conforming drawing primitive definition `text' @ error/draw.c/DrawImage/3265):")
@@ -46,12 +44,12 @@ RUN set -eux; \
 	echo "$REDMINE_DOWNLOAD_MD5 *redmine.tar.gz" | md5sum -c -; \
 	tar -xf redmine.tar.gz --strip-components=1; \
 	rm redmine.tar.gz files/delete.me log/delete.me; \
-	mkdir -p log public/plugin_assets sqlite tmp/pdf tmp/pids; \
+	mkdir -p log public/plugin_assets tmp/pdf tmp/pids; \
 	chown -R redmine:redmine ./; \
 # log to STDOUT (https://github.com/docker-library/redmine/issues/108)
 	echo 'config.logger = Logger.new(STDOUT)' > config/additional_environment.rb; \
 # fix permissions for running as an arbitrary user
-	chmod -R ugo=rwX config db sqlite; \
+	chmod -R ugo=rwX config db ; \
 	find log tmp -type d -exec chmod 1777 '{}' +
 
 RUN set -eux; \
@@ -62,17 +60,15 @@ RUN set -eux; \
 		gcc \
 		imagemagick6-dev \
 		make \
-		mariadb-dev \
 		musl-dev \
 		patch \
 		postgresql-dev \
-		sqlite-dev \
 		ttf2ufm \
 		zlib-dev \
 	; \
 	\
 	su-exec redmine bundle install --jobs "$(nproc)" --without development test; \
-	for adapter in mysql2 postgresql sqlserver sqlite3; do \
+	for adapter in postgresql; do \
 		echo "$RAILS_ENV:" > ./config/database.yml; \
 		echo "  adapter: $adapter" >> ./config/database.yml; \
 		su-exec redmine bundle install --jobs "$(nproc)" --without development test; \
@@ -95,8 +91,6 @@ RUN set -eux; \
 	)"; \
 	apk add --no-network --virtual .redmine-rundeps $runDeps; \
 	apk del --no-network .build-deps
-
-VOLUME /usr/src/redmine/files
 
 COPY docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
